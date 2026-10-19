@@ -22,5 +22,7 @@ namespace Pirlea_Andrada_Lab2.Models
 
         public int? PublisherID { get; set; }
         public Publisher? Publisher { get; set; }
+
+        public ICollection<BookCategory>? BookCategories { get; set; }
     }
 }
