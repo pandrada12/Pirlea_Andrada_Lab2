@@ -4,27 +4,37 @@ using Pirlea_Andrada_Lab2.Data;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
-builder.Services.AddRazorPages();
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy("AdminPolicy", policy =>
+        policy.RequireRole("Admin"));
+});
 
-// 1. Contextul principal pentru carti, membri, imprumuturi etc.
+builder.Services.AddRazorPages(options =>
+{
+    options.Conventions.AuthorizeFolder("/Books");
+    options.Conventions.AllowAnonymousToPage("/Books/Index");
+    options.Conventions.AllowAnonymousToPage("/Books/Details");
+    options.Conventions.AuthorizeFolder("/Members", "AdminPolicy");
+    options.Conventions.AuthorizeFolder("/PublisherPages", "AdminPolicy");
+    options.Conventions.AuthorizeFolder("/CategoryPages", "AdminPolicy");
+});
+
 builder.Services.AddDbContext<Pirlea_Andrada_Lab2Context>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("Pirlea_Andrada_Lab2Context")
         ?? throw new InvalidOperationException("Connection string 'Pirlea_Andrada_Lab2Context' not found.")));
 
-// 2. Contextul separat pentru Identity (autentificare si conturi utilizatori)
 builder.Services.AddDbContext<LibraryIdentityContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("Pirlea_Andrada_Lab2Context")
         ?? throw new InvalidOperationException("Connection string 'Pirlea_Andrada_Lab2Context' not found.")));
 
-// 3. Serviciul de Identity configurat cu LibraryIdentityContext si IdentityUser
-builder.Services.AddDefaultIdentity<ApplicationUser>(options =>
-    options.SignIn.RequireConfirmedAccount = false)
-    .AddEntityFrameworkStores<LibraryIdentityContext>();
+builder.Services.AddDefaultIdentity<Pirlea_Andrada_Lab2.Data.ApplicationUser>(options =>
+options.SignIn.RequireConfirmedAccount = true)
+ .AddRoles<IdentityRole>()
+ .AddEntityFrameworkStores<LibraryIdentityContext>();
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Error");

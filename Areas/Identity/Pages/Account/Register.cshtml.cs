@@ -88,10 +88,10 @@ public class RegisterModel : PageModel
         returnUrl ??= Url.Content("~/");
         ExternalLogins = (await _signInManager.GetExternalAuthenticationSchemesAsync()).ToList();
 
-        // Ignorare validare automata pentru proprietatile Member necompletate in Register
-        ModelState.ClearValidationState(nameof(Member));
-        ModelState.MarkFieldValid(nameof(Member));
+        ModelState.Remove("Member");
         ModelState.Remove("Member.Email");
+        ModelState.Remove("Member.FirstName");
+        ModelState.Remove("Member.LastName");
 
         if (ModelState.IsValid)
         {
@@ -103,16 +103,19 @@ public class RegisterModel : PageModel
 
             if (result.Succeeded)
             {
-                // Pasul 20: Salvare automata in tabela Member
                 Member.Email = Input.Email;
                 _context.Member.Add(Member);
                 await _context.SaveChangesAsync();
 
                 _logger.LogInformation("User created a new account with password.");
 
-                await _signInManager.SignInAsync(user, isPersistent: false);
+                var role = await _userManager.AddToRoleAsync(user, "User");
+                var userId = await _userManager.GetUserIdAsync(user);
+                var code = await _userManager.GenerateEmailConfirmationTokenAsync(user);
+
                 return LocalRedirect(returnUrl);
             }
+
             foreach (var error in result.Errors)
             {
                 ModelState.AddModelError(string.Empty, error.Description);
